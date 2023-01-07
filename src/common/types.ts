@@ -13,6 +13,14 @@ export interface Item {
     listingCount: number;
 }
 
+export interface ItemSnipe {
+    itemId: number;
+    name: string;
+    initialInvestment: number;
+    estProfit: number;
+    estProfitAsInvestmentPct: number;
+}
+
 export interface ItemOverview {
     lines: Array<Item>
 }
@@ -20,4 +28,4 @@ export interface ItemOverview {
 export interface Gem extends Item {
     gemLevel: number;
     gemQuality: number;
-}
+} 
