@@ -1,7 +1,8 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv'; 
 import jsonfile from 'jsonfile';
-import { ItemOverview, Gem, ItemSnipe } from './common/types';
+import { ItemOverview, Gem, ItemSnipe, IHashNumber, PoeTradeQuery } from './common/types';
+import { generateKey } from 'crypto';
 
 dotenv.config();
 
@@ -47,11 +48,11 @@ async function snipeLevedGems(gemData: Array<Gem>): Promise<any> {
     if (standardGem) {
       let estProfit = gem.chaosValue - standardGem.chaosValue;
       snipes.push({
-        itemId: standardGem.id,
-        name: standardGem.name,
+        item: standardGem,
         initialInvestment: standardGem.chaosValue,
         estProfit: estProfit,
-        estProfitAsInvestmentPct: Math.round(estProfit / standardGem.chaosValue)
+        estProfitAsInvestmentPct: Math.round(estProfit / standardGem.chaosValue),
+        poeTradeUrl: prepareTradeUrl(standardGem)
       });
     }
   });
@@ -63,4 +64,47 @@ function compareEstProfit(a: ItemSnipe, b: ItemSnipe) {
   if (a.estProfit < b.estProfit) return 1;
   if (a.estProfit > b.estProfit) return -1;
   return 0;
+}
+
+function prepareTradeUrl(gem: Gem): string {
+  // First we need to take care of alternate quality types, as they are treated different between poe.ninja data and the official trade site
+  // Divergent, Anomalous, Phantasmal - those have a separate filter on the trade site and use standard gem name
+  // Awakened, Vaal - those are not treated as a separate filter on the trade site
+  // .. grab the relevant type from the gem name and normalize
+  let typeRegex = new RegExp('Awakened|Anomalous|Divergent|Phantasmal|Vaal', 'g');
+  let qualityHash: IHashNumber = {}
+  qualityHash["Divergent"] = 2;
+  qualityHash["Anomalous"] = 1;
+  qualityHash["Phantasmal"] = 3;
+  if (gem.name.match(typeRegex)) {
+    // This is an alternate quality type gem
+    let qualityType = gem.name.match(typeRegex)![0];
+    if (qualityHash[qualityType]) {
+      gem.tradeAlternateQuality = qualityHash[qualityType];
+      gem.tradeName = gem.name.substring(qualityType.length + 1);
+    }
+  }
+
+  // generate the URL
+  let poeTradeUrl = 'https://www.pathofexile.com/trade/search/Sanctum?q=';
+  let tradeQuery: PoeTradeQuery = {
+    query: {
+      filters: {
+        misc_filters: {
+          filters: {
+            corrupted: {
+              option: (gem.corrupted) ? true : false
+            }
+          }
+        }
+      },
+      type: (gem.tradeName) ? gem.tradeName : gem.name
+    }
+  }
+
+  if (gem.tradeAlternateQuality) tradeQuery.query.filters.misc_filters.filters.gem_alternate_quality = { option: gem.tradeAlternateQuality };
+
+  poeTradeUrl += encodeURIComponent(JSON.stringify(tradeQuery));
+
+  return poeTradeUrl;
 }
