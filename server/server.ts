@@ -1,8 +1,6 @@
 import express, { Express, Request, response, Response } from 'express';
 import dotenv from 'dotenv';
-import jsonfile from 'jsonfile';
-import { ItemOverview, Gem, ItemSnipe, IHashNumber, PoeTradeQuery } from './common/types';
-import { generateKey } from 'crypto';
+import { ItemOverview, Gem, ItemSnipe, IHashNumber, PoeTradeQuery } from '../lib/types';
 
 dotenv.config();
 

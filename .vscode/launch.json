@@ -7,20 +7,27 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Launch Server",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/dist/index.js",
+            "program": "${workspaceFolder}/dist/server/server.js",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
             "resolveSourceMapLocations": [
-                "${workspaceFolder}/**",
+                "${workspaceFolder}/dist/**",
                 "!**/node_modules/**"
             ],
-            "preLaunchTask": "prepare app to debug",
+           "preLaunchTask": "prepare app to debug",
             // "postDebugTask": "clean app after debug"
-        }
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+          }
     ]
 }
