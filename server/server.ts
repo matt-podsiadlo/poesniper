@@ -1,13 +1,9 @@
 import express, { Express, Request, response, Response } from 'express';
 import dotenv from 'dotenv';
-import { ItemOverview, Gem, ItemSnipe, IHashNumber, PoeTradeQuery, Builds } from '../lib/types';
+import { ItemOverview, Gem, ItemSnipe, IHashNumber, PoeTradeQuery, BuildOverview } from '../lib/types';
 import jsonfile from 'jsonfile'
 
 dotenv.config();
-
-// test mode with local file
-const fileName = './test.json'
-let builds: Builds = jsonfile.readFileSync(fileName);
 
 const app: Express = express();
 const port = process.env.PORT;
@@ -19,35 +15,45 @@ app.get('/', (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });
-
-console.log('starting data grab');
-fetchGemData().then((data: ItemOverview) => {
-  console.log('data grabbed');
-  // console.log('lets grab only divergent gems');
-  // const regex = new RegExp('^[D|d]ivergent Volatile Dead*', 'g');
-  // let divergent = data.lines.filter(({name, variant}) => (name.match(regex)));
-  snipeLevedGems(data.lines as Array<Gem>)
-  console.log('done');
+fetchGemData().then((gemData) => {
+  fetchBuildData().then((buildData) => {
+    snipeLevedGems(gemData.lines as Array<Gem>, buildData);
+  });
 })
 
 async function fetchGemData(): Promise<ItemOverview> {
   const promise = new Promise<ItemOverview>((resolve, reject) => {
-    console.log('grabbing data');
+    console.log('Fetching gem data...');
     fetch('https://poe.ninja/api/data/itemoverview?league=Sanctum&type=SkillGem&language=en').then(async (response) => {
-      console.log('fetched');
+      console.log('Gem data fetched.');
       let data = await response.json();
       resolve(data);
     }).catch(function (err) {
-      console.log("Unable to fetch -", err);
+      console.log("Unable to fetch gem data -", err);
       reject(err)
     });
-    // let response: ItemOverview = jsonfile.readFileSync('data.json');
     console.log('done');
   });
   return promise;
 }
 
-function snipeLevedGems(gemData: Array<Gem>): void {
+async function fetchBuildData(): Promise<BuildOverview> {
+  const promise = new Promise<BuildOverview>((resolve, reject) => {
+    console.log('Fetching build data...');
+    fetch('https://poe.ninja/api/data/latest/getbuildoverview?overview=ssf-sanctum&type=exp&language=en').then(async (response) => {
+      console.log('Build data fetched.');
+      let data = await response.json();
+      resolve(data);
+    }).catch(function (err) {
+      console.log("Unable to fetch build data -", err);
+      reject(err)
+    });
+    console.log('done');
+  });
+  return promise;
+}
+
+function snipeLevedGems(gemData: Array<Gem>, buildData: BuildOverview): void {
   // Scan divergent type gems
   // let's setup some default filters
 
@@ -60,6 +66,7 @@ function snipeLevedGems(gemData: Array<Gem>): void {
   let divergent = gemData.filter(({ name }) => name.match(new RegExp('^[D|d]ivergent*', 'g')));
   // then, grab the 21/20 ones out of the bunch, we'll use this as comparison
   let divergentTop = divergent.filter(({ variant }) => variant == '21/20c');
+
   // we'll now check each of the top gems against it's lv 1 non corrupt variant to see what the price difference is and calculate the estimated profit for leveling and hitting the +1 corrupt
   let snipes: Array<ItemSnipe> = [];
   divergentTop.forEach((gem) => {
@@ -68,7 +75,7 @@ function snipeLevedGems(gemData: Array<Gem>): void {
       let estProfit = gem.chaosValue - standardGem.chaosValue;
       let roi = Math.round(estProfit / standardGem.chaosValue);
       if (roi < FILTER_ROI) return;
-      standardGem.buildsUsage = checkGemUsage(standardGem);
+      standardGem.buildsUsage = checkGemUsage(standardGem, buildData);
       if (standardGem.buildsUsage < FILTER_GEM_USAGE) return;
       snipes.push({
         item: standardGem,
@@ -95,10 +102,10 @@ function compareEstProfitAsInvestmentPctDesc(a: ItemSnipe, b: ItemSnipe) {
   return 0;
 }
 
-function checkGemUsage(gem: Gem) {
-  let iofGem = builds.allSkills.findIndex((element) => element.name == gem.name);
+function checkGemUsage(gem: Gem, buildData: BuildOverview) {
+  let iofGem = buildData.allSkills.findIndex((element) => element.name == gem.name);
   if (iofGem < 0) return 0;
-  else return builds.allSkillUse[iofGem].length;
+  else return buildData.allSkillUse[iofGem].length;
 }
 
 function prepareTradeUrl(gem: Gem): string {

@@ -39,7 +39,7 @@ export interface Gem extends Item {
 }
 
 /** Represents data from https://poe.ninja/api/data/latest/getbuildoverview?overview=ssf-sanctum&type=exp&language=en */
-export interface Builds {
+export interface BuildOverview {
     classNames: Array<string>;
     classes: Array<number>;
     uniqueItems: Array<BuildsItem>;
