@@ -18,7 +18,8 @@ export interface ItemSnipe {
     item: Item,
     initialInvestment: number;
     estProfit: number;
-    estProfitAsInvestmentPct: number;
+    /** Estimated return on initial investment. E.g. if initialInvestment is 10, estProfit is 90, the returnOnInvestment value will be 9 */
+    returnOnInvestment: number;
     poeTradeUrl: string;
 }
 
@@ -33,6 +34,35 @@ export interface Gem extends Item {
     tradeAlternateQuality?: number;
     /** Search name for the trade site */
     tradeName: string;
+    /** How many characters use this gem in the current league ladder */
+    buildsUsage?: number;
+}
+
+/** Represents data from https://poe.ninja/api/data/latest/getbuildoverview?overview=ssf-sanctum&type=exp&language=en */
+export interface Builds {
+    classNames: Array<string>;
+    classes: Array<number>;
+    uniqueItems: Array<BuildsItem>;
+    uniqueItemsUse: BuildsItemUse;
+    activeSkills: Array<BuildsSkills>;
+    activeSkillUse: BuildsItemUse;
+    allSkills: Array<BuildsSkills>;
+    allSkillUse: BuildsItemUse;
+}
+
+export interface BuildsItem {
+    name: string;
+    type: string;
+}
+
+export interface BuildsItemUse {
+    [index: string]: Array<number>
+}
+
+export interface BuildsSkills {
+    name: string;
+    icon: string;
+    dpsName: string;
 }
 
 export interface IHashNumber {

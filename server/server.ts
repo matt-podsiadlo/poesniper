@@ -1,8 +1,13 @@
 import express, { Express, Request, response, Response } from 'express';
 import dotenv from 'dotenv';
-import { ItemOverview, Gem, ItemSnipe, IHashNumber, PoeTradeQuery } from '../lib/types';
+import { ItemOverview, Gem, ItemSnipe, IHashNumber, PoeTradeQuery, Builds } from '../lib/types';
+import jsonfile from 'jsonfile'
 
 dotenv.config();
+
+// test mode with local file
+const fileName = './test.json'
+let builds: Builds = jsonfile.readFileSync(fileName);
 
 const app: Express = express();
 const port = process.env.PORT;
@@ -44,6 +49,13 @@ async function fetchGemData(): Promise<ItemOverview> {
 
 function snipeLevedGems(gemData: Array<Gem>): void {
   // Scan divergent type gems
+  // let's setup some default filters
+
+  /** minimum usage of a given gem in the league to be considered */
+  let FILTER_GEM_USAGE = 2;
+  /** minimum return on investment to be considered */
+  let FILTER_ROI = 10
+
   // first grab all divergent gems to narrow down the pool
   let divergent = gemData.filter(({ name }) => name.match(new RegExp('^[D|d]ivergent*', 'g')));
   // then, grab the 21/20 ones out of the bunch, we'll use this as comparison
@@ -54,23 +66,39 @@ function snipeLevedGems(gemData: Array<Gem>): void {
     let standardGem = divergent.find(({ name, variant }) => name == gem.name && variant == '1');
     if (standardGem) {
       let estProfit = gem.chaosValue - standardGem.chaosValue;
+      let roi = Math.round(estProfit / standardGem.chaosValue);
+      if (roi < FILTER_ROI) return;
+      standardGem.buildsUsage = checkGemUsage(standardGem);
+      if (standardGem.buildsUsage < FILTER_GEM_USAGE) return;
       snipes.push({
         item: standardGem,
         initialInvestment: standardGem.chaosValue,
         estProfit: estProfit,
-        estProfitAsInvestmentPct: Math.round(estProfit / standardGem.chaosValue),
+        returnOnInvestment: roi,
         poeTradeUrl: prepareTradeUrl(standardGem)
       });
     }
   });
-  snipes.sort(compareEstProfit);
+  snipes.sort(compareEstProfitAsInvestmentPctDesc);
   console.log(`sniped ${snipes.length} gems`);
 }
 
-function compareEstProfit(a: ItemSnipe, b: ItemSnipe) {
+function compareEstProfitDesc(a: ItemSnipe, b: ItemSnipe) {
   if (a.estProfit < b.estProfit) return 1;
   if (a.estProfit > b.estProfit) return -1;
   return 0;
+}
+
+function compareEstProfitAsInvestmentPctDesc(a: ItemSnipe, b: ItemSnipe) {
+  if (a.returnOnInvestment < b.returnOnInvestment) return 1;
+  if (a.returnOnInvestment > b.returnOnInvestment) return -1;
+  return 0;
+}
+
+function checkGemUsage(gem: Gem) {
+  let iofGem = builds.allSkills.findIndex((element) => element.name == gem.name);
+  if (iofGem < 0) return 0;
+  else return builds.allSkillUse[iofGem].length;
 }
 
 function prepareTradeUrl(gem: Gem): string {

@@ -24,3 +24,6 @@ yarn-error.log*
 
 # build files
 /dist
+
+# misc files
+test.json

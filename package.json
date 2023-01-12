@@ -3,31 +3,33 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@mui/material": "latest",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/express": "^4.17.15",
     "@types/jest": "^27.5.2",
+    "@types/jsonfile": "^6.1.1",
     "@types/node": "^16.18.11",
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.10",
     "concurrently": "^7.6.0",
     "express": "^4.18.2",
+    "jsonfile": "^6.1.0",
     "nodemon": "^2.0.20",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "typescript": "^4.9.4",
-    "@emotion/react": "latest",
-    "@emotion/styled": "latest",
-    "@mui/material": "latest"
+    "typescript": "^4.9.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server-build": "npx tsc -p server/tsconfig.json",
+    "server-build": "npx tsc -p server/tsconfig.json --outDir dist",
     "server-start": "npx concurrently \"npx tsc -p server/tsconfig.json --outDir dist --watch\" \"npx nodemon -q dist/server.js\""
   },
   "eslintConfig": {
